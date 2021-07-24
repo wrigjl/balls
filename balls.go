@@ -7,10 +7,13 @@ package main
 // current score and their mac address (used to identify the badge)
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -34,15 +37,30 @@ type GameMessage struct {
 	ret  chan string
 }
 
+type ReturnMessage struct {
+	user    string
+	score   int
+	err     string
+	hasball bool
+}
+
 type GameState struct {
-	// next id for a ball
-	ballCounter     int
 	activityTimeout time.Duration
 	ballTimeout     time.Duration
 	balls           []Ball
 	users           []User
 }
 
+// for marshaling/unmarshaling
+type GameStateDisk struct {
+	ActivityTimeout string
+	BallTimeout     string
+	Balls           []Ball
+	Users           []User
+}
+
+var defaultActivityTimeout string = "3m"
+var defaultBallTimeout string = "1m"
 var gameState GameState
 
 // All that multithreading to end up in a singlethreaded game state...
@@ -58,6 +76,35 @@ func messageWorker(c <-chan GameMessage) {
 
 	fixBallCount()
 	tossBalls()
+
+	saveGame()
+	returnMessage(msg.ret, msg.user)
+}
+
+func returnMessage(c chan string, user string) {
+	r := ReturnMessage{}
+	r.user = user
+
+	for _, ball := range gameState.balls {
+		if ball.owner == user {
+			r.hasball = true
+			break
+		}
+	}
+
+	for _, u := range gameState.users {
+		if u.id == user {
+			r.score = u.score
+			break
+		}
+	}
+
+	res, err := json.Marshal(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c <- string(res)
 }
 
 func tossBall(user string) {
@@ -187,10 +234,68 @@ func numActiveUsers() int {
 	return cnt
 }
 
+func saveGame() {
+	var gsd GameStateDisk
+
+	gsd.BallTimeout = gameState.ballTimeout.String()
+	gsd.ActivityTimeout = gameState.activityTimeout.String()
+	gsd.Users = gameState.users
+	gsd.Balls = gameState.balls
+
+	content, err := json.Marshal(gsd)
+	if err != nil {
+		log.Fatal("can't marshal gamestate: ", err)
+	}
+
+	ioutil.WriteFile("gamestate.json", content, 0644)
+}
+
+func initGameState() {
+
+	var gsd GameStateDisk
+
+	content, err := ioutil.ReadFile("gamestate.json")
+	if os.IsNotExist(err) {
+		fmt.Println("game state not found, initializing")
+		gameState.activityTimeout, err = time.ParseDuration(defaultActivityTimeout)
+		if err != nil {
+			log.Fatal("invalid timeout: ", defaultActivityTimeout)
+		}
+		gameState.ballTimeout, err = time.ParseDuration(defaultBallTimeout)
+		if err != nil {
+			log.Fatal("invalid timeout: ", defaultBallTimeout)
+		}
+	} else if err != nil {
+		log.Fatal("error opening gamestate: ", err)
+	} else {
+		err = json.Unmarshal(content, &gsd)
+		if err != nil {
+			log.Fatal("error loading state: ", err)
+		}
+
+		gameState.activityTimeout, err = time.ParseDuration(gsd.ActivityTimeout)
+		if err != nil {
+			log.Fatal("invalid timeout: ", gsd.ActivityTimeout)
+		}
+
+		gameState.ballTimeout, err = time.ParseDuration(gsd.BallTimeout)
+		if err != nil {
+			log.Fatal("invalid timeout: ", gsd.BallTimeout)
+		}
+
+		gameState.users = gsd.Users
+		gameState.balls = gsd.Balls
+	}
+
+	saveGame()
+}
+
 func main() {
 
 	msgWorker := make(chan GameMessage)
 	go messageWorker(msgWorker)
+
+	initGameState()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
