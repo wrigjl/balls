@@ -1,6 +1,7 @@
 package main
 
 // XXX connection/request limits/sec
+// XXX penalize user for tossing when they don't have ball?
 
 // Requirement: badge must wake up periodically and show the user's
 // current score and their mac address (used to identify the badge)
@@ -52,14 +53,30 @@ func messageWorker(c <-chan GameMessage) {
 	updateLastSeenUser(msg.user)
 
 	if msg.name == "toss" {
-		// user tosses ball
-		// if they don't have it: error
-		// else: record score
-		//       mark ball as unowned
+		tossBall(msg.user)
 	}
 
 	fixBallCount()
 	tossBalls()
+}
+
+func tossBall(user string) {
+	for _, ball := range gameState.balls {
+		if ball.owner == user {
+			addScore(user, 1)
+			ball.owner = ""
+			return
+		}
+	}
+}
+
+func addScore(user string, inc int) {
+	for _, u := range gameState.users {
+		if user == u.id {
+			u.score += inc
+			return
+		}
+	}
 }
 
 func removeBall(i int) {
