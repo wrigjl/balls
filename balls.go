@@ -1,5 +1,8 @@
 package main
 
+// TODO
+// - do something useful with the default handler
+
 // XXX connection/request limits/sec
 // XXX penalize user for tossing when they don't have ball?
 
@@ -14,6 +17,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -21,14 +25,14 @@ import (
 
 type Ball struct {
 	// time
-	owner    string
-	lastseen time.Time
+	Owner    string
+	Lastseen time.Time
 }
 
 type User struct {
-	id       string
-	score    int
-	lastseen time.Time
+	Id       string
+	Score    int
+	Lastseen time.Time
 }
 
 type GameMessage struct {
@@ -38,10 +42,10 @@ type GameMessage struct {
 }
 
 type ReturnMessage struct {
-	user    string
-	score   int
-	err     string
-	hasball bool
+	User    string
+	Score   int
+	Err     string
+	Hasball bool
 }
 
 type GameState struct {
@@ -65,36 +69,37 @@ var gameState GameState
 
 // All that multithreading to end up in a singlethreaded game state...
 func messageWorker(c <-chan GameMessage) {
-	msg := <-c
+	for msg := range c {
+		expireBalls()
+		updateLastSeenUser(msg.user)
 
-	expireBalls()
-	updateLastSeenUser(msg.user)
+		if msg.name == "toss" {
+			tossBall(msg.user)
+		}
 
-	if msg.name == "toss" {
-		tossBall(msg.user)
+		fixBallCount()
+		tossBalls()
+
+		saveGame()
+		returnMessage(msg.ret, msg.user)
+		close(msg.ret)
 	}
-
-	fixBallCount()
-	tossBalls()
-
-	saveGame()
-	returnMessage(msg.ret, msg.user)
 }
 
 func returnMessage(c chan string, user string) {
 	r := ReturnMessage{}
-	r.user = user
+	r.User = user
 
 	for _, ball := range gameState.balls {
-		if ball.owner == user {
-			r.hasball = true
+		if ball.Owner == user {
+			r.Hasball = true
 			break
 		}
 	}
 
 	for _, u := range gameState.users {
-		if u.id == user {
-			r.score = u.score
+		if u.Id == user {
+			r.Score = u.Score
 			break
 		}
 	}
@@ -109,9 +114,9 @@ func returnMessage(c chan string, user string) {
 
 func tossBall(user string) {
 	for _, ball := range gameState.balls {
-		if ball.owner == user {
+		if ball.Owner == user {
 			addScore(user, 1)
-			ball.owner = ""
+			ball.Owner = ""
 			return
 		}
 	}
@@ -119,8 +124,8 @@ func tossBall(user string) {
 
 func addScore(user string, inc int) {
 	for _, u := range gameState.users {
-		if user == u.id {
-			u.score += inc
+		if user == u.Id {
+			u.Score += inc
 			return
 		}
 	}
@@ -138,19 +143,19 @@ func tossBalls() {
 	var ballsToToss []int
 
 	for i, ball := range gameState.balls {
-		if ball.owner != "" {
-			holders[ball.owner] = true
+		if ball.Owner != "" {
+			holders[ball.Owner] = true
 		}
 		ballsToToss = append(ballsToToss, i)
 	}
 
 	for _, u := range gameState.users {
-		if time.Since(u.lastseen) > gameState.activityTimeout {
+		if time.Since(u.Lastseen) > gameState.activityTimeout {
 			// not active, skip
 			continue
 		}
 
-		_, hasball := holders[u.id]
+		_, hasball := holders[u.Id]
 		if hasball {
 			// already has one, skip
 			continue
@@ -164,8 +169,8 @@ func tossBalls() {
 	}
 
 	for _, i := range ballsToToss {
-		gameState.balls[i].lastseen = time.Now()
-		gameState.balls[i].owner = users[rand.Intn(len(users))].id
+		gameState.balls[i].Lastseen = time.Now()
+		gameState.balls[i].Owner = users[rand.Intn(len(users))].Id
 	}
 }
 
@@ -184,7 +189,7 @@ func fixBallCount() {
 		// too many
 		found := false
 		for i, ball := range gameState.balls {
-			if ball.owner == "" {
+			if ball.Owner == "" {
 				removeBall(i)
 				found = true
 				delta++
@@ -199,24 +204,24 @@ func fixBallCount() {
 
 func expireBalls() {
 	for _, ball := range gameState.balls {
-		if ball.owner == "" {
+		if ball.Owner == "" {
 			// not currently in play
 			continue
 		}
-		if time.Since(ball.lastseen) <= gameState.ballTimeout {
+		if time.Since(ball.Lastseen) <= gameState.ballTimeout {
 			// not expired yet
 			continue
 		}
 
 		// mark as un-owned
-		ball.owner = ""
+		ball.Owner = ""
 	}
 }
 
 func updateLastSeenUser(id string) {
 	for _, u := range gameState.users {
-		if u.id == id {
-			u.lastseen = time.Now()
+		if u.Id == id {
+			u.Lastseen = time.Now()
 			return
 		}
 	}
@@ -227,7 +232,7 @@ func updateLastSeenUser(id string) {
 func numActiveUsers() int {
 	cnt := 0
 	for _, u := range gameState.users {
-		if time.Since(u.lastseen) <= gameState.activityTimeout {
+		if time.Since(u.Lastseen) <= gameState.activityTimeout {
 			cnt++
 		}
 	}
@@ -290,6 +295,17 @@ func initGameState() {
 	saveGame()
 }
 
+var parseIdMatcher = regexp.MustCompile(`^[0-9a-fA-F]+$`)
+
+func parseId(id string) bool {
+	// match an ethernet mac address in hex w/out :'s
+	if len(id) != 12 {
+		// avoid having to parse stupid long re's
+		return false
+	}
+	return parseIdMatcher.MatchString(id)
+}
+
 func main() {
 
 	msgWorker := make(chan GameMessage)
@@ -298,7 +314,10 @@ func main() {
 	initGameState()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 	})
 
 	r := mux.NewRouter()
@@ -306,23 +325,45 @@ func main() {
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/",
 		http.FileServer(http.Dir("."))))
 
-	r.HandleFunc("/poll", func(w http.ResponseWriter, r *http.Request) {
-		var msg GameMessage
+	r.HandleFunc("/poll/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
 
-		msg.user = "user"
-		msg.name = "poll"
-		msg.ret = make(chan string)
+		id, hasid := vars["id"]
+		if !hasid {
+			http.Error(w, "missing id", http.StatusNotAcceptable)
+			return
+		}
+
+		if !parseId(id) {
+			http.Error(w, "bad id", http.StatusNotAcceptable)
+			return
+		}
+
+		msg := GameMessage{id, "poll", make(chan string)}
 		msgWorker <- msg
+		w.Header().Set("Content-Type",
+			"application/json; charset=utf-8")
 		fmt.Fprintf(w, "%s", <-msg.ret)
 	})
 
-	r.HandleFunc("/toss", func(w http.ResponseWriter, r *http.Request) {
-		var msg GameMessage
+	r.HandleFunc("/toss/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
 
-		msg.user = "user"
-		msg.name = "toss"
-		msg.ret = make(chan string)
+		id, hasid := vars["id"]
+		if !hasid {
+			http.Error(w, "missing id", http.StatusNotAcceptable)
+			return
+		}
+
+		if !parseId(id) {
+			http.Error(w, "bad id", http.StatusNotAcceptable)
+			return
+		}
+
+		msg := GameMessage{id, "toss", make(chan string)}
 		msgWorker <- msg
+		w.Header().Set("Content-Type",
+			"application/json; charset=utf-8")
 		fmt.Fprintf(w, "%s", <-msg.ret)
 	})
 
