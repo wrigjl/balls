@@ -203,7 +203,7 @@ func fixBallCount() {
 }
 
 func expireBalls() {
-	for _, ball := range gameState.balls {
+	for i, ball := range gameState.balls {
 		if ball.Owner == "" {
 			// not currently in play
 			continue
@@ -214,14 +214,14 @@ func expireBalls() {
 		}
 
 		// mark as un-owned
-		ball.Owner = ""
+		gameState.balls[i].Owner = ""
 	}
 }
 
 func updateLastSeenUser(id string) {
-	for _, u := range gameState.users {
+	for i, u := range gameState.users {
 		if u.Id == id {
-			u.Lastseen = time.Now()
+			gameState.users[i].Lastseen = time.Now()
 			return
 		}
 	}
