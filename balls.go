@@ -123,9 +123,9 @@ func tossBall(user string) {
 }
 
 func addScore(user string, inc int) {
-	for _, u := range gameState.users {
+	for i, u := range gameState.users {
 		if user == u.Id {
-			u.Score += inc
+			gameState.users[i].Score += inc
 			return
 		}
 	}
