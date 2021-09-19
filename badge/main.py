@@ -8,7 +8,7 @@ import config
 
 def set_serial():
     from machine import UART
-    uart = UART(0, baudrate=115200)
+    uart = UART(0, baudrate=config.baud)
     uart.write('moo')
 
 
@@ -17,11 +17,17 @@ def init_display():
     scl = machine.Pin(5)
     i2c = machine.I2C(scl=scl, sda=sda, freq=400000)
 
-    return ssd1306.SSD1306_I2C(128, 64, i2c)
+    display = ssd1306.SSD1306_I2C(128, 64, i2c)
+    display.fill(1)
+    display.show()
+    time.sleep(0.5)
+    display.fill(0)
+    display.show()
+    return display
 
 
 display = init_display()
-display.text('Hello World!', 0, 0, 1)
+display.text('BSides IF 2021', 0, 0, 1)
 display.show()
 
 
