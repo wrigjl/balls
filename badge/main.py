@@ -1,64 +1,62 @@
-
 import ssd1306
 import network
 import time
 import machine
 import config
+import neopixel
+import bad_funcs as bf
 
-
+# Init our button input and output...
 button_read = machine.ADC(0)
-button_out = machine.Pin(16, Pin.OUT)
+button_out = machine.Pin(16, machine.Pin.OUT)
 
+# Init neopixels for badge
+# These are still a bit BROKE...
+num_pixels = 2
+neo_pix_pin = machine.Pin(0)
+np = bf.init_neopix(neo_pix_pin, num_pixels)
 
-def check_button():
-    button_out(1)
-    test_val = 0
-    for each in range(10):
-        test_val += button_read.read()
-    test_val = test_val / 10
-    if test_val > 10:
-        print("button pressed")
-    else:
-        print("button not pressed")
-    button_out(0)
-
-
-def set_serial():
-    from machine import UART
-    uart = UART(0, baudrate=config.baud)
-    uart.write('moo')
-
-
-def init_display():
-    sda = machine.Pin(4)
-    scl = machine.Pin(5)
-    i2c = machine.I2C(scl=scl, sda=sda, freq=400000)
-
-    display = ssd1306.SSD1306_I2C(128, 64, i2c)
-    display.fill(1)
-    display.show()
-    time.sleep(0.5)
-    display.fill(0)
-    display.show()
-    return display
-
-
-display = init_display()
+# Init the display for our use...
+display = bf.init_display()
 display.text('BSides IF 2021', 0, 0, 1)
 display.show()
 
+# Do some shit with the serial port (Disable it? Hell I don't know yet...)
+# bf.set_serial()
 
-def network_connect(dsp):
-    sta = network.WLAN(network.STA_IF)
-    sta.active(True)
-    while not sta.isconnected():
-        dsp.text('connecting...', 0, 10, 1)
-        dsp.show()
-        sta.connect(config.ssid, config.ssid_pass)
+bf.network_connect(display)
+
+# Init a counter for our use instead of sleep which just screws us over
+counter = 1
+
+# This is our main game loop now... This is where the real work is going to be.
+while True:
+    if counter % 200 == 0:
+        print("Counter is:%s" % counter)
+    if counter % 1000 == 0:
+        bf.default_display(display)
+    if bf.check_button(button_read, button_out):
+        display.fill(0) # Any time we want to display stuff we need to clear it
+        display.text('Button Pressed!', 0, 0, 1)
+        display.show()
         time.sleep(5)
-    dsp.text('wifi connected', 0, 20, 1)
-    dsp.show()
-
-
-set_serial()
-network_connect(display)
+    # else:
+    #     display.fill(0)
+    #     display.text('Not Button IF Stuff', 0, 0, 1)
+    #     display.show()
+    #     time.sleep(5)
+    if counter % 50000 == 0:
+        counter = 0
+    counter = counter + 1
+    # np[0] = (25, 0, 0) # set to red, full brightness
+    # np[1] = (0, 25, 0) # set to red, full brightness
+    # np.write()
+    # np[0] = (0, 25, 0) # set to red, full brightness
+    # np[1] = (25, 25, 0) # set to red, full brightness
+    # np.write()
+    # neo_test(np)
+    # demo(np)
+# while True:
+        # display.show()
+    # time.sleep(.5)
+    # time.sleep(1.5)
