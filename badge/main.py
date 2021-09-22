@@ -11,7 +11,6 @@ button_read = machine.ADC(0)
 button_out = machine.Pin(16, machine.Pin.OUT)
 
 # Init neopixels for badge
-# These are still a bit BROKE...
 num_pixels = 2
 neo_pix_pin = machine.Pin(0)
 np = bf.init_neopix(neo_pix_pin, num_pixels)

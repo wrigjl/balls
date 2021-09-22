@@ -70,20 +70,6 @@ def demo(np):
         np[i] = (0, 0, 0)
     np.write()
 
-def check_button(button_read, button_out):
-    button_out(1)
-    test_val = 0
-    for each in range(10):
-        test_val += button_read.read()
-        test_val = test_val / 10
-    if test_val > 10:
-        # print("button pressed")
-        return 1
-    else:
-        # print("button not pressed")
-        return 0
-    button_out(0)
-
 def set_serial():
     from machine import UART
     uart = UART(0, baudrate=config.baud)
