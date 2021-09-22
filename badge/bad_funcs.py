@@ -44,7 +44,7 @@ def demo(np):
             np[j] = (0, 0, 0)
         np[i % n] = (255, 255, 255)
         np.write()
-        time.sleep_ms(250)
+        time.sleep_ms(50)
     # bounce
     for i in range(4 * n):
         for j in range(n):
@@ -54,7 +54,7 @@ def demo(np):
         else:
             np[n - 1 - (i % n)] = (0, 0, 0)
         np.write()
-        time.sleep_ms(160)
+        time.sleep_ms(60)
     # fade in/out
     for i in range(0, 4 * 256, 8):
         for j in range(n):
@@ -124,22 +124,3 @@ def default_display(display):
         display.text('Hit the ball...', 0, 30, 1)
         display.text('When you get one!', 0, 40, 1)
         display.show()
-
-
-# from machine import Pin, ADC
-
-# button_read = machine.ADC(0)
-# button_out = machine.Pin(16, machine.Pin.OUT)
-# def check_button():
-#     button_out(1)
-#     test_val = 0
-#     for each in range(10):
-#         test_val += button_read.read()
-#     test_val = test_val / 10
-#     if test_val > 10:
-#         print("button pressed")
-#     else:
-#         print("button not pressed")
-#     button_out(0)
-
-
