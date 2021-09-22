@@ -4,6 +4,9 @@ import time
 import machine
 import config
 import neopixel
+import ubinascii
+import urequests
+import json
 import bad_funcs as bf
 
 # Init our button input and output...
@@ -23,11 +26,12 @@ display.show()
 # Do some shit with the serial port (Disable it? Hell I don't know yet...)
 # bf.set_serial()
 
-bf.network_connect(display)
-
+net_sta = bf.network_connect(display)
+api_id = bf.get_cli_id(net_sta)
 # Init a counter for our use instead of sleep which just screws us over
 counter = 1
-
+url_string = "http://balls.thought.net:8080/poll/%s" % api_id
+tmp_pwn = "http://balls.thought.net:8080/toss/%s" % api_id
 # This is our main game loop now... This is where the real work is going to be.
 while True:
     if counter % 200 == 0:
@@ -35,6 +39,11 @@ while True:
         bf.demo(np)
     if counter % 1000 == 0:
         bf.default_display(display)
+        deets = bf.get_deets(url_string)
+        print("Deets be gotten...\n%s" % deets)
+        if deets['Hasball']:
+            pwnd = bf.get_deets(tmp_pwn)
+            print("Pwn Activated:\n%s" % pwnd)
     if bf.check_button(button_read, button_out):
         display.fill(0) # Any time we want to display stuff we need to clear it
         display.text('Button Pressed!', 0, 0, 1)
@@ -45,18 +54,6 @@ while True:
     #     display.text('Not Button IF Stuff', 0, 0, 1)
     #     display.show()
     #     time.sleep(5)
-    if counter % 50000 == 0:
+    if counter % 60000 == 0:
         counter = 0
     counter = counter + 1
-    # np[0] = (25, 0, 0) # set to red, full brightness
-    # np[1] = (0, 25, 0) # set to red, full brightness
-    # np.write()
-    # np[0] = (0, 25, 0) # set to red, full brightness
-    # np[1] = (25, 25, 0) # set to red, full brightness
-    # np.write()
-    # neo_test(np)
-    # demo(np)
-# while True:
-        # display.show()
-    # time.sleep(.5)
-    # time.sleep(1.5)

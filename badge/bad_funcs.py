@@ -3,7 +3,10 @@ import network
 import time
 import machine
 import config
+import ubinascii
+import urequests
 import neopixel
+import json
 
 def disp_test(display):
     display.fill(0)
@@ -18,6 +21,11 @@ def disp_test(display):
     display.text('OLED 128x64', 40, 24, 1)
     display.show()
 
+def get_deets(url_str):
+    response = urequests.get(url_str)
+    user_deets = json.loads(response.text)
+    response.close()
+    return user_deets
 
 def neo_test(np):
     np[0] = (25, 0, 0) # set to red, full brightness
@@ -101,6 +109,20 @@ def network_connect(dsp):
         time.sleep(5)
     dsp.text('wifi connected', 0, 20, 1)
     dsp.show()
+    return sta
+
+def network_recon(sta):
+    if not sta.isconnected():
+        sta.connect(config.ssid, config.ssid_pass)
+
+def get_cli_id(net):
+    mac = ubinascii.hexlify(net.config('mac'),'').decode('hex')
+    tmp = []
+    for each in mac:
+        if each in '0123456789abcdef':
+            tmp += each
+    mac = ''.join(tmp)
+    return mac
 
 def default_display(display):
         display.fill(0) # Any time we want to display stuff we need to clear it
