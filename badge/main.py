@@ -6,6 +6,23 @@ import machine
 import config
 
 
+button_read = machine.ADC(0)
+button_out = machine.Pin(16, Pin.OUT)
+
+
+def check_button():
+    button_out(1)
+    test_val = 0
+    for each in range(10):
+        test_val += button_read.read()
+    test_val = test_val / 10
+    if test_val > 10:
+        print("button pressed")
+    else:
+        print("button not pressed")
+    button_out(0)
+
+
 def set_serial():
     from machine import UART
     uart = UART(0, baudrate=config.baud)
