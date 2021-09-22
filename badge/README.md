@@ -50,3 +50,7 @@ ampy --port /dev/ttyUSB0 put config.py
 
 Then press the reset button. Note: if you want to connect to your own
 SSID, edit appropriate strings in `config.py` first.
+
+# Resources
+
+ - sleep mode [here](https://forum.micropython.org/viewtopic.php?t=2734) and [more](http://docs.micropython.org/en/latest/library/esp.html)
