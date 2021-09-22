@@ -33,6 +33,7 @@ counter = 1
 while True:
     if counter % 200 == 0:
         print("Counter is:%s" % counter)
+        bf.demo(np)
     if counter % 1000 == 0:
         bf.default_display(display)
     if bf.check_button(button_read, button_out):
