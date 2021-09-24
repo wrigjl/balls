@@ -54,3 +54,10 @@ SSID, edit appropriate strings in `config.py` first.
 # Resources
 
  - sleep mode [here](https://forum.micropython.org/viewtopic.php?t=2734) and [more](http://docs.micropython.org/en/latest/library/esp.html)
+ - Unfortunately our 2021 Badge won't deep sleep... so maybe next time.
+
+# Dev Environment Tweaks
+ - There is a load.sh script for environments that already have the above tools installed.
+ - ./load.sh will flash a new image and all code onto the board.
+ - COMMENT OUT or ensure you copy and modify a config.py per the script.
+ - By default the script copies a config.py from the root of my profile so I don't commit my own information into the repo
