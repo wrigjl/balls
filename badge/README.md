@@ -60,4 +60,4 @@ SSID, edit appropriate strings in `config.py` first.
  - There is a load.sh script for environments that already have the above tools installed.
  - ./load.sh will flash a new image and all code onto the board.
  - COMMENT OUT or ensure you copy and modify a config.py per the script.
- - Mine copies from the root of my profile so I don't commit my own information into the repo
+ - By default the script copies a config.py from the root of my profile so I don't commit my own information into the repo
