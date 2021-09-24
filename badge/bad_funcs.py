@@ -44,6 +44,55 @@ def check_button(button_read, button_out):
         return False
     button_out(0)
 
+def frash(np):
+    n = np.n
+    # bounce
+    for i in range(4 * n):
+        for j in range(n):
+            np[j] = (0, 0, 128)
+        if (i // n) % 2 == 0:
+            np[i % n] = (0, 0, 0)
+        else:
+            np[n - 1 - (i % n)] = (0, 0, 0)
+        np.write()
+        time.sleep_ms(20)
+    # clear
+    for i in range(n):
+        np[i] = (0, 0, 0)
+    np.write()
+
+def fadez(np):
+    n = np.n
+    # bounce
+    # fade in/out
+    for i in range(0, 4 * 256, 8):
+        for j in range(n):
+            if (i // 256) % 2 == 0:
+                val = i & 0xff
+            else:
+                val = 255 - (i & 0xff)
+            np[j] = (val, 0, 0)
+        np.write()
+        time.sleep_ms(10)
+    # clear
+    for i in range(n):
+        np[i] = (0, 0, 0)
+    np.write()
+
+def ballzy(np):
+    n = np.n
+    # cycle
+    for i in range(4 * n):
+        for j in range(n):
+            np[j] = (0, 0, 0)
+        np[i % n] = (255, 255, 255)
+        np.write()
+        time.sleep_ms(50)
+    # clear
+    for i in range(n):
+        np[i] = (0, 0, 0)
+    np.write()
+
 def demo(np):
     n = np.n
     # cycle
@@ -124,11 +173,36 @@ def get_cli_id(net):
     mac = ''.join(tmp)
     return mac
 
-def default_display(display):
+def default_display(display, deets):
+    score_str = 'Score:%d' % deets['Score']
+    uid_str = 'UID:%s' % deets['User']
+    display.fill(0) # Any time we want to display stuff we need to clear it
+    display.text('Let\'s Play...', 0, 0, 1)
+    # display.text('Can you catch?', 0, 10, 1)
+    display.text('Press a button', 0, 10, 1)
+    display.text('IF you get a', 0, 20, 1)
+    display.text('ball...', 0, 30, 1)
+    display.text(score_str, 0, 40, 1)
+    display.text(uid_str, 0, 50, 1)
+    display.show()
+
+def got_a_ball(display):
         display.fill(0) # Any time we want to display stuff we need to clear it
-        display.text('Let\'s Play...', 0, 0, 1)
-        display.text('Can you catch?', 0, 10, 1)
-        display.text('Then Hit a button?', 0, 20, 1)
-        display.text('Hit the ball...', 0, 30, 1)
-        display.text('When you get one!', 0, 40, 1)
+        display.text('You got a BALL!!!', 0, 0, 1)
+        display.text('Touch a button', 0, 10, 1)
+        display.text('to toss it!', 0, 20, 1)
+        display.show()
+
+def tossd_a_ball(display):
+        display.fill(0) # Any time we want to display stuff we need to clear it
+        display.text('You tossed the', 0, 0, 1)
+        display.text('ball!', 0, 10, 1)
+        display.text('Hope it scored!', 0, 20, 1)
+        display.show()
+
+def cheetz(display):
+        display.fill(0) # Any time we want to display stuff we need to clear it
+        display.text('You CHEATER!', 0, 0, 1)
+        display.text('Nice Job!', 0, 10, 1)
+        display.text('Hope it was fun!', 0, 20, 1)
         display.show()
