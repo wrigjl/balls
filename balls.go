@@ -113,10 +113,10 @@ func returnMessage(c chan string, user string) {
 }
 
 func tossBall(user string) {
-	for _, ball := range gameState.balls {
+	for i, ball := range gameState.balls {
 		if ball.Owner == user {
 			addScore(user, 1)
-			ball.Owner = ""
+			gameState.balls[i].Owner = ""
 			return
 		}
 	}
