@@ -8,6 +8,7 @@ import ubinascii
 import urequests
 import json
 import bad_funcs as bf
+from machine import WDT
 
 # Init our button input and output...
 button_read = machine.ADC(0)
@@ -38,8 +39,13 @@ tmp_pwn = "http://balls.thought.net:8080/toss/%s" % api_id
 deets = bf.get_deets(url_string)  # Get our initial deets
 pwnd = deets
 score_var = deets['Score']
+# Lets sleep for a few seconds in case things aren't working we can still flash the badge...
+time.sleep(5)
+# Init our Watch Dog...
+wdt = WDT()
 # This is our main game loop now... This is where the real work is going to be.
 while True:
+    wdt.feed() # Feed our Watch Dog
     # Display State Machine...
     # Default Display State
     if disp_var == 0:
