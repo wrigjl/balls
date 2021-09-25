@@ -38,7 +38,7 @@ def check_button(button_read, button_out):
     for each in range(10):
         test_val += button_read.read()
     test_val = test_val / 10
-    if test_val > 10:
+    if test_val > 30:
         return True
     else:
         return False
