@@ -193,6 +193,7 @@ func fixBallCount() {
 				removeBall(i)
 				found = true
 				delta++
+				break
 			}
 		}
 		if !found {
